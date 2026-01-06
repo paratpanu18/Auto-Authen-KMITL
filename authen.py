@@ -190,33 +190,58 @@ def start():
 
 
 def create_config():
-    input_username = input('Your username (mostly student ID, without @kmitl.ac.th): ')
+    print('\n--- Password Storage Options ---')
+    print('1. Store password in config file (convenient but less secure)')
+    print('2. Keep password in RAM only (more secure, will ask each time)')
+    
+    while True:
+        storage_choice = input('Choose option (1 or 2): ').strip()
+        if storage_choice in ['1', '2']:
+            break
+        print('Invalid choice. Please enter 1 or 2.')
+    
+    store_password_in_file = (storage_choice == '1')
+
+    input_username = input('\nYour username (mostly student ID, without @kmitl.ac.th): ')
     input_password = getpass.getpass('Your password: ')
     input_yourIp = input('Your Public IP Address: ')
+
 
     data = {}
     if input_username != '':
         data.update({'username': input_username})
-    if input_password != '':
+    if input_password != '' and store_password_in_file:
         data.update({'password': input_password})
     if input_yourIp != '':
         data.update({'ipAddress': input_yourIp})
+    
+    data.update({'store_password': store_password_in_file})
 
     with open('config.json', 'w') as config_file:
         json.dump(data, config_file, indent=4)
+    
+    if store_password_in_file:
+        print('\nConfig saved with password stored in file.')
+    else:
+        print('\nConfig saved. Password will be asked each time you run the program.')
+    
+    # Return password for immediate use if not storing
+    return input_password if not store_password_in_file else None
 
 if __name__ == '__main__':
     # get arguments
     args = parser.parse_args()
+    ram_password = None
+    
     if args.config:
-        create_config()
+        ram_password = create_config()
 
     if not os.path.isfile('config.json'):
         try:
             to_create = input(
                 'Cannot found \'config.json\', do you want to create a new one? (Y/n): ').lower()
             if to_create not in ['n', 'no']:
-                create_config()
+                ram_password = create_config()
         except EOFError:
             print('\nGood bye!')
             sys.exit(0)
@@ -230,6 +255,20 @@ if __name__ == '__main__':
                 password = config['password']
             if 'ipAddress' in config:
                 ipAddress = config['ipAddress']
+            
+            # check if user prefer to store password on RAM
+            store_password = config.get('store_password', True)
+            if not store_password and password == '':
+                if ram_password:
+                    password = ram_password
+                else:
+                    print("--- Stored configuration ---")
+                    print('Username:', username)
+                    print('IP Address:', ipAddress)
+
+                    print('\nPassword is not stored in config file (RAM-only mode).')
+                    password = getpass.getpass('Enter your password: ')
+                    
     except FileNotFoundError:
         pass
 
