@@ -19,7 +19,14 @@ try:
 except ImportError:
     HAS_ARGCOMPLETE = False
 
-VERSION = "1.2.0"
+# Fix for PyInstaller certifi bundle
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    import certifi
+    os.environ['SSL_CERT_FILE'] = certifi.where()
+    os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+
+VERSION = "1.3.0"
 CONFIG_DIR = os.path.expanduser("~/.config/kmitl-authen")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 LOG_FILE = os.path.join(CONFIG_DIR, "authen.log")
